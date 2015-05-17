@@ -1,0 +1,123 @@
+---
+title: "PA1_template"
+author: "Simeon"
+date: "Sunday, May 17, 2015"
+output: html_document
+---
+
+
+Downloading and Loading Data
+
+```{r, echo=FALSE}
+setwd("C:/Users/Simeon/Desktop/R Language")
+if(!file.exists("./Reproducible")){dir.create("./Reproducible")}
+filename<-"https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(filename, destfile = "./Reproducible/Dataset.zip")
+unzip(zipfile = "./Reproducible/Dataset.zip", exdir = "./Reproducible")
+setwd("C:/Users/Simeon/Desktop/R Language/Reproducible")
+dataset <- read.csv("activity.csv")
+dataset$date <- as.Date(dataset$date, "%Y-%m-%d")
+```
+
+Transforming dataset into suitable format
+
+```{r, echo=FALSE}
+dataset$date <- as.Date(dataset$date, "%Y-%m-%d")
+```
+
+Calculate the mean number of steps taken per day
+
+```{r, echo =FALSE}
+DailySteps <- aggregate(steps ~ date, data = dataset, sum, na.rm=TRUE)
+hist(col = "green", DailySteps$steps, main = "Total Steps Taken per Day", xlab = "Total Steps")
+```
+
+Mean number of steps taken per day
+
+```{r, echo=FALSE}
+MeanSteps <- mean(DailySteps$steps)
+```
+
+The mean number of steps per day is 'r MeanSteps'.
+
+Median number of steps taken per day
+
+```{r, echo=FALSE}
+MedianSteps <- median(DailySteps$steps)
+```
+
+The median number of steps per day is 'r MedianSteps'.
+
+What is the average daily activity pattern?
+
+```{r, echo=FALSE}
+IntervalSteps <- aggregate(steps ~ interval, data = dataset, mean, na.rm = TRUE)
+plot(steps ~ interval, data = IntervalSteps, type = "l", main = "Average number of steps across Intervals", xlab = "Intervals", ylab = "Average no. of Steps")
+```
+
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r, echo=FALSE}
+maxsteps <- IntervalSteps[which.max(IntervalSteps$steps), "interval"]
+```
+
+The interval with maximum number of steps is 'r maxsteps'.
+
+
+
+Total number of rows with "NA":
+
+```{r, echo=FALSE}
+length(which(is.na(dataset$steps)))
+```
+
+Using Interval Mean to fill in missing values
+```{r}
+DuplicateData <- dataset
+for (i in 1:nrow(DuplicateData)) {
+      if (is.na(DuplicateData$steps[i])) {
+            index <- DuplicateData$interval[i]
+            value <- subset(IntervalSteps, interval==index)
+            DuplicateData$steps[i] <- value$steps
+      }
+}
+```
+
+Number of steps taken each day (After filling in missing values)
+```{r, echo=FALSE}
+DailyAverageSteps <- aggregate(steps ~ date, data = DuplicateData, sum)
+hist(DailyAverageSteps$steps, col = "blue", xlab = "Total Number of Steps", 
+     ylab = "Frequency", main = "Histogram of Total Number of Steps taken each Day")
+```
+
+Mean of Total Steps taken per day
+
+```{r, echo=FALSE}
+mean(DailyAverageSteps$steps)
+```
+
+Median of Total Steps taken per day
+
+```{r, echo=FALSE}
+median(DailyAverageSteps$steps)
+```
+
+Do these values differ from the estimates from the first part of the assignment?
+
+Only the median value differs.
+
+What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+Since the mean for each interval was input into the missing data, the mean stays the same.
+
+
+
+Are there differences in activity patterns between weekdays and weekends?
+
+```{r, echo=FALSE}
+DuplicateData$date <- as.Date(DuplicateData$date, "%Y-%m-%d")
+DuplicateData$day <- ifelse(weekdays(DuplicateData$date) %in% c("Saturday", "Sunday"), "weekend", "weekday")
+DaySegregation <- aggregate(steps ~ interval + day, data = DuplicateData, mean)
+library(lattice)
+xyplot(steps ~ interval | factor(day), data = DaySegregation, type="l", aspect = 1/2)
+```
